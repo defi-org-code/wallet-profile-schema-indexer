@@ -9,7 +9,7 @@ import { Account as EthereumJsAccount } from "ethereumjs-util/dist/account";
 import { Block as EthereumJsBlock } from "@ethereumjs/block/dist/block";
 import { StorageDump as EthereumJsStorageDump } from "@ethereumjs/vm/dist/state/interface";
 import abiDefault, { AbiCoder } from "web3-eth-abi";
-import { AbiItem } from "web3-utils";
+import web3Utils, { AbiItem } from "web3-utils";
 import {
   ISchema,
   IData,
@@ -37,9 +37,9 @@ import { Perf } from "./perf";
 import { EVMResult } from "@ethereumjs/vm/dist/evm/evm";
 const abiCoder = abiDefault as unknown as AbiCoder;
 
-export async function processSchema(schemaJsPath: string, data: IData, perf: Perf) {
+export async function processSchema(schemaJsPath: string, data: IData, perf: Perf, schemaArguments: object) {
   const Schema = require(schemaJsPath);
-  const schema = new Schema() as ISchema;
+  const schema = new Schema(schemaArguments) as ISchema;
   const processor = new Processor(schema, data, perf);
   await processor.run();
 }
@@ -77,6 +77,7 @@ class Processor implements IWeb3 {
   }
 
   // web3 interface
+  utils = web3Utils;
 
   Contract(jsonAbi: string, address: string): IContract {
     return new (class {
