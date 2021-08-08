@@ -19,6 +19,7 @@
     "@ethereumjs/common": "^2.2.0",
     "@ethereumjs/tx": "^3.1.4",
     "@ethereumjs/vm": "^5.3.2",
+    "bignumber.js": "^9.0.1",
     "chalk": "^2.4.2",
     "ethereumjs-util": "^7.0.10",
     "fs-extra": "^7.0.1",
@@ -27,8 +28,11 @@
     "merkle-patricia-tree": "^4.2.0",
     "multiaddr": "^8.1.2",
     "node-fetch": "^2.6.1",
+    "pg": "^8.6.0",
     "qheap": "^1.4.0",
+    "redis": "^3.1.2",
     "rlp": "^2.2.4",
+    "socket.io-client": "^2.4.0",
     "web3": "^1.3.6"
   },
   "devDependencies": {
@@ -39,7 +43,7 @@
     "hardhat-web3": "^1.0.1",
     "prettier": "^2.3.0",
     "ts-generator": "^0.1.1",
-    "ts-node": "^10.0.0",
+    "ts-node": "^10.1.0",
     "typescript": "^4.2.4"
   },
   "prettier": {
@@ -48,6 +52,7 @@
   "scripts": {
     "prettier": "prettier --write 'src/**/*.{ts,js,json,sol}'",
     "rlp-read": "ts-node ./src/debug/rlp-read.ts",
-    "test-schema": "ts-node ./src/schema-indexer/test/index.ts"
+    "test-schema": "THE_INDEX_DATA_DIR=/data/rlp  node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/schema-indexer/test/index.ts",
+    "pipeline": "THE_INDEX_DATA_DIR=/data/rlp  node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/pipeline/build.ts"
   }
 }
