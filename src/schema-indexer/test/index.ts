@@ -21,7 +21,12 @@ async function main() {
     process.exit(0);
   }
 
-  const jsFilePath = `${__dirname}/schemas/${schemaName}.js`;
+  let jsFilePath = `${__dirname}/schemas/${schemaName}`;
+  if(jsFilePath.indexOf('.ts') !== jsFilePath.length - 3) {
+    jsFilePath += '.js';
+  }
+  console.log(`jsFilePath ${jsFilePath}`);
+
   if (!fs.existsSync(jsFilePath)) {
     console.error("ERROR: Invalid schema, see usage for available test schemas.", jsFilePath);
     process.exit(0);

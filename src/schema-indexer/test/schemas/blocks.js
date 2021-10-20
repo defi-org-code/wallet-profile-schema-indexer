@@ -6,11 +6,18 @@ class Schema {
   }
 
   async onBlock(blockNumber) {
-    const block = await this.web3.getBlock();
-    if (block.hash.startsWith("0x12345")) {
-      console.log(`block ${blockNumber}:`);
-      console.dir(block);
+    if(blockNumber < 12000000) {
+      return
     }
+
+    if(blockNumber % 1000 !== 0) {
+      return
+    }
+    const block = await this.web3.getBlock();
+    console.dir(block);
+    //if (block?.hash.startsWith("0x12345")) {
+      console.log(`block ${blockNumber}: ${block?.gasLimit}`);
+    //}
   }
 }
 

@@ -9,7 +9,7 @@ import { Account as EthereumJsAccount } from "ethereumjs-util/dist/account";
 import { Block as EthereumJsBlock } from "@ethereumjs/block/dist/block";
 import { StorageDump as EthereumJsStorageDump } from "@ethereumjs/vm/dist/state/interface";
 import abiDefault, { AbiCoder } from "web3-eth-abi";
-import web3Utils, { AbiItem } from "web3-utils";
+import web3Utils, { Utils, AbiItem } from "web3-utils";
 import {
   ISchema,
   IData,
@@ -37,8 +37,14 @@ import { Perf } from "./perf";
 import { EVMResult } from "@ethereumjs/vm/dist/evm/evm";
 const abiCoder = abiDefault as unknown as AbiCoder;
 
+//Support Typescript Schemas
+
+
 export async function processSchema(schemaJsPath: string, data: IData, perf: Perf, schemaArguments: object) {
-  const Schema = require(schemaJsPath);
+  if(schemaJsPath.indexOf('.ts') > -1) {
+    require('ts-node').register({transpileOnly: true});
+  }
+  const Schema = require(schemaJsPath); // supprot type script files as well 
   const schema = new Schema(schemaArguments) as ISchema;
   const processor = new Processor(schema, data, perf);
   await processor.run();
@@ -48,13 +54,16 @@ class Processor implements IWeb3 {
   protected currentBlockNumber: number = 0;
   protected latestBlockNumber: number = 0;
   protected vm: VM;
-
+  utils: Utils;
   constructor(protected schema: ISchema, protected data: IData, protected perf: Perf) {
     // TODO: pass common: Common to support custom chains like bsc
     this.vm = new VM({
       stateManager: this.stateManager,
       blockchain: this.blockchain,
     });
+
+    // web3 interface
+    this.utils = web3Utils;
   }
 
   async run() {
@@ -76,8 +85,7 @@ class Processor implements IWeb3 {
     /**/ this.perf.end("all");
   }
 
-  // web3 interface
-  utils = web3Utils;
+  
 
   Contract(jsonAbi: string, address: string): IContract {
     return new (class {

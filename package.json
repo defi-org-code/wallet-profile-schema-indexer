@@ -53,6 +53,9 @@
     "prettier": "prettier --write 'src/**/*.{ts,js,json,sol}'",
     "rlp-read": "ts-node ./src/debug/rlp-read.ts",
     "test-schema": "THE_INDEX_DATA_DIR=/data/rlp  node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/schema-indexer/test/index.ts",
-    "pipeline": "THE_INDEX_DATA_DIR=/data/rlp  node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/pipeline/build.ts"
+    "pipeline": "THE_INDEX_DATA_DIR=/data/rlp  node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/pipeline/build.ts",
+    "pipeline-lite": "THE_INDEX_DATA_DIR=/data/rlp2  node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/pipeline/build-lite.ts",
+    "score-redis-2-quest":"node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/pipeline/score-job.ts",
+    "run-coins": "THE_INDEX_DATA_DIR=/data/rlp  node --max-old-space-size=108096 -- node_modules/.bin/ts-node  ./src/pipeline/run-coins.ts"
   }
 }

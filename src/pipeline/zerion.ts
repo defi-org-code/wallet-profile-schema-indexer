@@ -1,7 +1,9 @@
 const redis = require("redis");
+
+//default is 1 
 const client = redis.createClient({
     db: 1, 
-    host: '34.134.236.209',
+  //  host: '34.134.236.209',
     password: 'admin@orbs'
 });
 let io = require('socket.io-client');
@@ -10,7 +12,7 @@ const BASE_URL = 'wss://api-v4.zerion.io/';
 const TTL = 3600 * 3;
 const ZERION_TIMEOUT = 3000;
 export const HOLDERS:string = ":holders";
-export const WALLET_TME_SERIES:string = "wallet2-time-series:"; 
+export const WALLET_TIME_SERIES:string = "wallet2-time-series"; 
 export const PORTOLIO:string = "portfolio:"; 
 
 
@@ -25,6 +27,7 @@ function get(socketNamespace: any, requestBody: any ,key:string): Promise<any> {
 
     return new Promise( (resolve, reject)=> {
         var tid = setTimeout( ()=> {
+            failedCalls[key] = 1;
             counters.failure++;
             reject();
         }, ZERION_TIMEOUT); 
@@ -92,9 +95,13 @@ interface IPortfolio {
     relative_change_24h: number;
 }
 
-async function fetchChartRedis(address: string): Promise<string[]> {
+function walletTimeSeriesRedisKey(address:string, currency:string) {
+    return `${WALLET_TIME_SERIES}:${currency}:${address}`;
+}
+
+async function fetchChartRedis(address: string, currency = 'usd'): Promise<string[]> {
     return new Promise( (resolve, reject) => {
-        let key = WALLET_TME_SERIES + address;
+        let key = walletTimeSeriesRedisKey(address, currency);
         client.zrange(key, 0, -1, 'withscores', (err: Error, results: string[])=> {
             if(err) {
                 console.log(err);
@@ -105,8 +112,9 @@ async function fetchChartRedis(address: string): Promise<string[]> {
     })
 }
 
+let failedCalls = {};
 
-async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<IChartResponse> {
+async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK, currency = 'usd'): Promise<IChartResponse> {
     return new Promise(async (resolve, reject)=> {
         counters.miss++;
 
@@ -124,15 +132,21 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
         let started = Date.now();
         let response:any;
         try {
+            let key = 'charts:'+address.toLowerCase();
+            if(failedCalls.hasOwnProperty(key)) {
+                //console.log(`failed calls cache ${address}`);
+                clearTimeout(tid);
+                return reject()
+            }
 
             response = await get(addressSocket, {
                 scope: ['charts'],
                 payload: {
                     address: address,
                     charts_type: lookBack,
-                    currency: 'usd',
+                    currency: currency,
                     portfolio_fields: 'all'
-                }}, 'charts:'+address.toLowerCase());
+                }}, key);
         } catch(e) {
             
             clearTimeout(tid);
@@ -157,7 +171,7 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
         }
         resolve(chartResposne);
         counters.missOk++;
-        console.log('counters', counters);
+      //  console.log('counters', counters);
         //console.log('zerion api success took', took, address);
             
             
@@ -176,6 +190,7 @@ async function fetchProtfolio(address: string): Promise<IPortfolioResponse> {
             //     graphiteCounter.addError('zerion.Timeout');
             //     console.log('fetch zerion.Protfolio timeout', address);
             //    // counters.failure++;
+            
             console.log('timeout '+address, counters);
             return reject();
         }, ZERION_TIMEOUT);
@@ -242,16 +257,17 @@ export async function buildPortfolio(holder: string): Promise<IPortfolio> {
     }
     
     
-export async function buildPortfolioHistory(holder: string): Promise<object> {
+export async function buildPortfolioHistory(holder: string, currency = 'usd'): Promise<object> {
     //console.log(`buildPortfolioHistory ${holder}`);
     counters.starts++;
     return new Promise( async (resolve, reject) => {
         let cachedTimeSeries = await fetchChartRedis(holder);
+        
         if(cachedTimeSeries.length == 0 ) {
-            //MISS
+            //MISS 
             try {
-                let chartResponse = await fetchChart(holder, 'y');
-                var key = WALLET_TME_SERIES + holder; 
+                let chartResponse = await fetchChart(holder, 'y', currency);
+                var key = walletTimeSeriesRedisKey(holder, currency);; 
                 let multi = client.multi();
                 
                 var charts = chartResponse.payload.charts.others;
@@ -285,10 +301,29 @@ export async function buildPortfolioHistory(holder: string): Promise<object> {
 }
 
 function calculateScores(portfolio: object): object {
+    //console.log(portfolio)
     let scores = calcScoreByHistory(portfolio);
     let scoresW = calcScoreByHistory(portfolio, 'w');
     let scoresY = calcScoreByHistory(portfolio, 'y');
-    return Object.assign(scoresW ,scores, scoresY);
+    let scoreA = caclPortfolioAvrg(portfolio);
+    let historyLength = Object.keys(portfolio).length;
+    return Object.assign({ "age": historyLength, "score_a": scoreA},scoresW ,scores, scoresY);
+}
+
+function caclPortfolioAvrg(portfolio: object): number {
+    let sum = 0;
+    let days = Object.keys(portfolio);
+    let daysCount = days.length;
+    
+    let lastValue = portfolio[days[days.length-1] ];
+    for(var day in portfolio) {
+        sum += parseInt(portfolio[day]);
+    }
+    let avrg = sum / daysCount;
+    
+    let avrageDelta = lastValue / avrg;
+    
+    return avrageDelta;
 }
 
 type ZERION_LOOK_BACK = 'y' | 'm' | 'w';
@@ -302,10 +337,10 @@ function calcScoreByHistory(portfolio: object, daysToLookBack: ZERION_LOOK_BACK 
     let lookBackStr = '_' + daysToLookBack;
     out[`firstBalance${lookBackStr}`] = firstBalance;
     out[`lastBalance${lookBackStr}`] = lastBalance;
-    out[`score${lookBackStr}`] = score;
-    if(daysToLookBack == 'm') {
-        out['score'] = score;
-    }
+    out[`score${lookBackStr}`] = score == Infinity ? 10 : score;
+    // if(daysToLookBack == 'm') {
+    //     out['score'] = score;
+    // }
     return out;
 }
 
@@ -320,18 +355,17 @@ function findFirstScore(protfolio: Object, lookBack: ZERION_LOOK_BACK): number {
             offset = 30;
             break;
         case 'y':
-            offset = 0;
+            offset = 365;
             break;
     }
     let firstNonZero = 0;
     let counter = 0;
-    for(var key in protfolio) {
-        counter++;
-        if(counter < offset) {
-            continue;
-        }
-        if(parseInt(protfolio[key]) > 0){
-            firstNonZero = parseInt(protfolio[key]);   
+
+    let dates = Object.keys(protfolio);
+    for (let i = (dates.length - offset); i < dates.length; i++) {
+        const protfolioVal = protfolio[dates[i]];
+        if(parseInt(protfolioVal) > 0){
+            firstNonZero = parseInt(protfolioVal);   
             break;
         }
     }

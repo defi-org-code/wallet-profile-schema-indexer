@@ -11,19 +11,17 @@ import { resolve } from "multiaddr";
 
 const TASK_HOLDER_COUNT = 'uv-holder-count'
 const TASK_PRICE = 'uv-price';
-const TASK_TOP_HOLDERS = 'generic-top-holders';
-const TASK_HOLDERS = 'generic-holders';
-const HOLDER_TABLE = 'holder';
+const TASK_TOP_HOLDERS = 'top-holder-score.ts';
+const TASK_HOLDERS = 'holder-score.ts';
+const HOLDER_TABLE = 'coinHolderScore';
 const PRICE_TABLE = 'price';
 export const HOLDER_SCORE_TABLE = 'score';
-//const QUESTDB_IP = '34.145.174.225';  //questdb2
 const QUESTDB_IP = '35.245.119.216'; // qdb7
-//const QUESTDB_IP = '34.71.239.135';  //questdb3
-//const QUESTDB_IP = '34.123.109.198'; //questdb4
 const QUESTDB_HOMEDIR = '/home/indexer/';
-
 export const HOLDERS_SCORE_SCHEME = `[{"name":"address", "type": "SYMBOL"},{"name":"score", "type":"float"},{"name":"scoreW", "type":"float"},{"name":"scoreM", "type":"float"},{"name":"scoreY", "type":"float"}]`;
-const HOLDERS_SCHEME = `[{"name":"address", "type": "symbol"},{"name":"timestamp", "type": "TIMESTAMP", "pattern": "yyyy-MM-ddTHH:mm:ss.SSSz"},{"name":"block", "type":"double"},{"name":"balance", "type": "double"},{"name":"symbol", "type": "symbol"}]`;
+
+const COIN_HOLDER_SCORE_SCHEME = `[{"name":"address", "type": "symbol"},{"name":"timestamp", "type": "TIMESTAMP", "pattern": "yyyy-MM-ddTHH:mm:ss.SSSz"},{"name":"block", "type":"double"},{"name":"balance", "type": "double"},{"name":"scoreY", "type": "double"},{"name":"scoreM", "type": "double"},{"name":"scoreW", "type": "double"},{"name":"scoreA", "type": "double"},{"name":"symbol", "type": "symbol"}]`;
+
 const PRICE_SCHEME = `[{"name":"timestamp", "type": "TIMESTAMP", "pattern": "yyyy-MM-ddTHH:mm:ss.SSSz"},
 {"name":"priceToken", "type":"double"},
 {"name":"priceWeth", "type": "double"},
@@ -44,8 +42,6 @@ async function run() {
     //await priceFeed(coins);
 
     await topHoldersByCoin(coins);
-
-    //await scoresForTopHolders();
 
     //await holderCount(coins);
     console.timeEnd('pipeline');
@@ -123,37 +119,28 @@ async function holderCount(coins: coin[]): Promise<void>  {
 }
 ///////////////////////
 async function topHoldersByCoin(coins: coin[]) {
-    /*Run Top Holders*/
-    printMsg('Start top Holders')
-   await execSchemasInParallel(TASK_TOP_HOLDERS, coins);
-    printMsg('Done top Holders')
-   // await execSchemasInParallel(TASK_HOLDERS, coins);
+    
+    printMsg('Start top Holders with scores')
+    await execSchemasInParallel(TASK_TOP_HOLDERS, coins);
+    printMsg('Done top Holders with scores')
+    await execSchemasInParallel(TASK_HOLDERS, coins);
 
-    printMsg('Done Generic Holder')
+    printMsg('Done Coin Holder')
     for(let coin of coins) {
-        printMsg(`Pushing  ${coin.symbol} Holders CSVs to DB at holders ${HOLDER_TABLE}`)
+        printMsg(`Pushing by SCP ${coin.symbol} Holders CSVs to DB at holders ${HOLDER_TABLE}`)
         console.time(`bulk ${coin.symbol}`)
 
-        let out = await deployCSV2TableByScp(`/data/the-index/csv/holders.${coin.symbol}.csv`, HOLDERS_SCHEME , `${coin.symbol}holdersV2`, '&timestamp=timestamp&partitionBy=DAY&overwrite=true');
+        let out = await deployCSV2TableByScp(`/data/the-index/csv/holder-score.${coin.symbol}.csv`, COIN_HOLDER_SCORE_SCHEME , `${coin.symbol}.holders.score`, '&timestamp=timestamp&partitionBy=DAY&overwrite=true');
         console.log(out);
         await cleanAfterSCP();
         console.timeEnd(`bulk ${coin.symbol}`)
     }
     printMsg('Clean up SCP files')
-    //await cleanAfterSCP();
     printMsg('Done Pushing CSVs to DB')
 }
 
 
-//hack
-    //let topHoldersCsv = './csv/holders.score.csv';
-async function scoresForTopHolders() {
-    printMsg('Build Holders Scores by zerion')
-    let topHoldersCsv = await generateTopHoldersScore();
-    printMsg('Done Holders Scores by zerion');
-    let holderScoreResult = await deployCSV2TableByCurl(topHoldersCsv, HOLDERS_SCORE_SCHEME ,`${HOLDER_SCORE_TABLE}V3`);
-    printMsg(holderScoreResult);
-}
+
 
 async function scpFilesByPattern(filesPattern: string): Promise<string> {
     //scp -i '~/.ssh/id_ed25519' /data/the-index/csv/holders.*.csv 'indexer@35.245.119.216:/home/indexer/'

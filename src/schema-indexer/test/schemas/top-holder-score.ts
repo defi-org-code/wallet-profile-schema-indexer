@@ -1,34 +1,55 @@
 const BigNumber = require('bignumber.js');
 const fs = require('fs');
-const MAX_HOLDERS = 1000;
-const MIN_HOLDERS = 300;
+import { buildPortfolioHistory } from "../../../pipeline/zerion";
+const process = require('process');
+const MAX_HOLDERS = 3000;
+const MIN_HOLDERS = 100;
+
+
+import {
+  IWeb3,
+  IData,
+  IContract,
+} from "../../interfaces";
+
+type addressToScore = {
+  [key: string]: {};
+};
+
 
 class Schema {
-  constructor(flags) {
-    this.time = console.time('Top Holders Schema');
+  flags: object
+  holders: object
+  web3: IWeb3
+  contract: IContract
+
+  constructor(flags: object) {
+    console.time('Top Holders Schema');
+    console.log('Top Holders Schema typescript !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1');
     this.flags = flags || {};
     this.holders = {};
     console.log('this.flags' ,this.flags);
   }
   
-  async onInit(web3, data) {
+  async onInit(web3: IWeb3, data: IData) {
     data.trackState();
     this.web3 = web3;
-    this.contract = this.web3.Contract(batContractAbi, this.flags?.tokenContract);
+    this.contract = this.web3.Contract(batContractAbi, this.flags['tokenContract']);
   }
   
   async onBlock(blockNumber) {
     if( blockNumber % 10000 == 0){
       console.log(`block ${blockNumber}:`);
     }  
-    if(blockNumber < this.flags.startBlock){
+
+    if(blockNumber < this.flags['startBlock']){
       return
     }
     const events = await this.contract.getEvents("Transfer");
     if (events.length > 0) {
       for (const ev of events) {
         let toBalance = ev.returnValues[1];
-        this.addHolder(ev.returnValues._to, toBalance);
+        this.addHolder(ev.returnValues['_to'], toBalance);
       }
     }
     let block = await this.web3.getBlock()
@@ -51,12 +72,13 @@ class Schema {
     this.holders[address] = this.holders[address].plus(amount);
   }
 
-  onDone() {
-   this.summarizeTopHolders();
+  async onDone() {
+   await this.summarizeTopHolders();
    console.timeEnd('Top Holders Schema');
+   process.exit();
   }
 
-  summarizeTopHolders() {
+  async summarizeTopHolders() {
     let arr =[];
     for(var key in this.holders) {
       arr.push({address:key, amount: this.holders[key]})
@@ -72,13 +94,47 @@ class Schema {
     let addresses = top.map( (it)=> {
       return it.address;
     });
-    let topHoldersPath = `./csv/top-holders-${this.flags.symbol}.csv`;
+
+    let addressScore = await this.getScores(addresses);
+    
+    let topHoldersPath = `./csv/top-holders-${this.flags['symbol']}.csv`;
     let logStream = fs.createWriteStream(topHoldersPath, {flags: 'w'});
-    logStream.write(`${addresses.join('\n')}`);
+    logStream.write(`address,scoreY,scoreM,scoreW,scoreA\n`);  
+
+    
+    for(let address in addressScore) {
+      let it = addressScore[address];
+      logStream.write(`${address},${it['score_y']},${it['score_m']},${it['score_w']},${it['score_a']}\n`);  
+    }
+    
     logStream.end();
-    console.log(`top holders file created topHolders:${addresses.length} out of totalHolders${soretedArr.length}`)
-    return topHoldersPath;
+    console.log(`
+    =======================================================
+    top holders file created (${topHoldersPath}) topHolders:${addresses.length} out of totalHolders ${soretedArr.length}
+    =======================================================
+    `);
+    // return topHoldersPath;
   }
+
+  async getScores(holders: string[]): Promise<addressToScore> {
+    return new Promise( async (resolve, reject) => {
+
+      let map: addressToScore = {};
+      let error_counter = 0;
+      for(let holder of holders) {
+        try {
+          //console.log(`fetching ${holder}`);
+          let scores = await buildPortfolioHistory(holder);
+          //console.log(`fetching ${holder} ok`);
+          map[holder]= scores;
+        } catch(e) {
+          console.log(`zerion errors ${error_counter++}`)
+        }
+      }
+      console.log('done get scores')
+      resolve(map);
+    });
+  } 
 }
 
 

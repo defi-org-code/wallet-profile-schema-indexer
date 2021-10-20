@@ -4,6 +4,14 @@ import * as fs from "fs";
 
 var OUTPUT_CSV = `./csv/holders.score.csv`;
 
+export async function generateScroesForSet(holders: string[]): Promise<string> {
+    OUTPUT_CSV = `./csv/redis-holders.score.csv`;
+    initOutputCSV(OUTPUT_CSV);
+
+    let holderSet = new Set<string>(holders);
+    processHolders(holderSet);
+    return Promise.resolve(OUTPUT_CSV);
+}
 
 
 export async function generateTopHoldersScore(): Promise<string> {
@@ -24,7 +32,7 @@ function generateHoldersList(csvDir: string, filePattern = 'top-holders'): Promi
             })
         }
     })
-    return readHolders(holders);
+    return processHolders(holders);
 }   
 
 
@@ -38,7 +46,7 @@ export function csvToRows(csvPath: string, separator = "\n"): string[] {
 
 var counter = 0;
 
-async function readHolders(holders: Set<string>) {
+async function processHolders(holders: Set<string>) {
     console.log(`Building scores for ${holders.size} of holders`);
     for(var address of holders) {
         if(counter % 10 == 0) {
@@ -58,7 +66,7 @@ async function readHolders(holders: Set<string>) {
 
 
 
-function initOutputCSV(name:string, csvHeader:string='address,score,scoreW,scoreM,scoreY') {
+function initOutputCSV(name:string, csvHeader:string='address,scoreW,scoreM,scoreY,age') {
     let logStream = fs.createWriteStream(name, {flags: 'w'});
     logStream.write(`${csvHeader}\n`);
     logStream.end();
@@ -66,8 +74,8 @@ function initOutputCSV(name:string, csvHeader:string='address,score,scoreW,score
 
 
 function writeRow(address:string, scoreObj: object) {
-    
-    let row = `${address},${scoreObj['score']},${scoreObj['score_w']},${scoreObj['score_m']},${scoreObj['score_y']}\n`
+    let row = `${address},${scoreObj['score_w']},${scoreObj['score_m']},${scoreObj['score_y']}\n`
+   // console.log(`${scoreObj['score']}    |     ${scoreObj['score_w']}    |     ${scoreObj['score_m']}    |     ${scoreObj['score_y']}`)
     fs.appendFile(OUTPUT_CSV, row, (err)=> {
         if(err) throw err;
     });

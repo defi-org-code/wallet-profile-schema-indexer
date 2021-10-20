@@ -1,6 +1,8 @@
 .config.json
 datadir/
-
+csv/
+*.log
+OrbsSharedSSH.pem
 # Created by https://www.toptal.com/developers/gitignore/api/intellij+all,node,solidity,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=intellij+all,node,solidity,macos
 

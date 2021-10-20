@@ -297,6 +297,3 @@ const abiErc20 = [
 ];
 
 module.exports = Schema;
-
-const x =
-'{"symbol":"mishka","address":"0x976091738973b520a514ea206acdd008a09649de","createBlock":0,"decimals":18,"lpAddress":"0x68ca62c3c0cc90c6501181d625e94b4f0fdc869c","lpCreateBlock":12768620}'
