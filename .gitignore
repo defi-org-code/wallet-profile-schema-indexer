@@ -321,3 +321,7 @@ temp/
 # Temporary folders
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij+all,node,solidity,macos
+
+
+/data/*
+*.json
