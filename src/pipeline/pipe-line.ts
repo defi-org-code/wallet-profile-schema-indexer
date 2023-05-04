@@ -60,7 +60,8 @@ async function main(topCoins?: { [key: string]: any}) {
 
 // setInterval(() => {
 
-    main({
+main(
+    //{
         // "Frog": {
         //     "name": "Hulk pepe",
         //     "symbol": "SMASH",
@@ -101,7 +102,8 @@ async function main(topCoins?: { [key: string]: any}) {
         //     creationTime: 1629811200,
         //     liquidity: 91.1
         // }
-    });
+//    }
+);
 
 // }, 5 * 3600);
 
