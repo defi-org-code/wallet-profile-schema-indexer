@@ -13,22 +13,26 @@ function objToArray(obj: any) {
     });
 }
 
+let once = false;
+
 async function main(topCoins?: { [key: string]: any}) {
-    await client.connect();
-    
+    if(!once) {
+        once = true;
+        await client.connect();
+    }
     topCoins = topCoins || (await fetchTopCoins());
-    
-    
-    
+
+
+
     const coins = objToArray(topCoins);
     console.log(coins);
-    
+
     for (let i = 0; i < coins.length; i++) {
-        
+
         const coin = coins[i];
         if (coin.holders > MAX_HOLDERS_FILTER) {
             console.log(`skipping coin ${coin.name} with holders ${coin.holders}`);
-            
+
             continue
         }
 
@@ -39,26 +43,26 @@ async function main(topCoins?: { [key: string]: any}) {
             fs.unlinkSync(csv);
         }
         console.log('*** getHoldersCSV ', csv);
-        
+
         const holders = await getHoldersCSV(coin.tokenAddress, coin.pairAddress, csv)
         console.log('*** getHoldersCSV result =', holders?.length);
-        
+
         const score = await buildTokenScore(csv);
-        
+
         const token = await fetchPairData(coin.pairAddress);
 
         await appendRow([
             new Date().toISOString(), `${token.name} - [${token.symbol}]`, token?.price ,token.volume24h, `6h buys:${token.buys6h} sells:${token.sells6h}` , coin.tokenAddress, coin.pairAddress, coin.creationTime, coin.holders, coin.liquidity, coin.score
-            , score.avgScore, score.totalWallets, score.filteredWallets, token.fdv 
+            , score.avgScore, score.totalWallets, score.filteredWallets, token.fdv
         ]);
     }
-    
-    
+
+
 }
 
-//main();
+main();
 
-// setInterval(() => {
+setInterval(() => {
 
 main(
     //{
@@ -105,7 +109,7 @@ main(
 //    }
 );
 
-// }, 5 * 3600);
+ }, (5 * 3600 * 1000) );
 
 // main({
 //     "Frog": {
