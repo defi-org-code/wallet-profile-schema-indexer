@@ -177,53 +177,53 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
     
     
     
-    async function fetchPortfolio(address: string): Promise<IPortfolioResponse> {
+    // async function fetchPortfolio(address: string): Promise<IPortfolioResponse> {
         
-        return new Promise(async (resolve, reject)=> {
-            counters.miss++;
-            let cachedVersion = await fetchPortfolioRedis(address);
+    //     return new Promise(async (resolve, reject)=> {
+    //         counters.miss++;
+    //         let cachedVersion = await fetchPortfolioRedis(address);
             
-            if (cachedVersion && cachedVersion.assets_value) {
-                console.log('zerion.fetchPortfolio redis hit', address);
+    //         if (cachedVersion && cachedVersion.assets_value) {
+    //             console.log('zerion.fetchPortfolio redis hit', address);
                 
-                counters.missOk++;
-                return resolve(cachedVersion);
-            }
+    //             //counters.missOk++;
+    //             return resolve(cachedVersion);
+    //         }
             
-            var tid = setTimeout( ()=> {
-                //     graphiteCounter.addError('zerion.Timeout');
-                //     console.log('fetch zerion.Protfolio timeout', address);
-                //    // counters.failure++;
-                console.log('timeout '+address, counters);
-                return reject();
-            }, ZERION_TIMEOUT);
+    //         var tid = setTimeout( ()=> {
+    //             //     graphiteCounter.addError('zerion.Timeout');
+    //             //     console.log('fetch zerion.Protfolio timeout', address);
+    //             //    // counters.failure++;
+    //             console.log('timeout '+address, counters);
+    //             return reject();
+    //         }, ZERION_TIMEOUT);
             
-            //let started = Date.now();
+    //         //let started = Date.now();
             
-            let response = await get(addressSocket, {
-                scope: ['portfolio'],
-                payload: {
-                    address: address,
-                    currency: 'usd',
-                    portfolio_fields: 'all'
-                }
-            },`portfolio:${address.toLowerCase()}`);
+    //         let response = await get(addressSocket, {
+    //             scope: ['portfolio'],
+    //             payload: {
+    //                 address: address,
+    //                 currency: 'usd',
+    //                 portfolio_fields: 'all'
+    //             }
+    //         },`portfolio:${address.toLowerCase()}`);
             
             
-            clearTimeout(tid);
-            let portfolioResposne = response as IPortfolioResponse;
-            let portfolio = portfolioResposne.payload.portfolio;
-            if (!portfolioResposne.payload && portfolio ) {
-                console.log('zerion.fetch portfolio  is null', address);
-                clearTimeout(tid);
-                return reject();
-            }
+    //         clearTimeout(tid);
+    //         let portfolioResposne = response as IPortfolioResponse;
+    //         let portfolio = portfolioResposne.payload.portfolio;
+    //         if (!portfolioResposne.payload && portfolio ) {
+    //             console.log('zerion.fetch portfolio  is null', address);
+    //             clearTimeout(tid);
+    //             return reject();
+    //         }
             
-            resolve(portfolioResposne);
-            counters.missOk++;
-            console.log('counters', counters);
-        })
-    }
+    //         resolve(portfolioResposne);
+    //         counters.missOk++;
+    //         console.log('counters', counters);
+    //     })
+    // }
     
     
     
@@ -232,30 +232,30 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
     
     var counter = 0;
     var buildPortfolioHistoryCounter = 0;
-    export async function buildPortfolio(holder: string): Promise<IPortfolio> {
+    // export async function buildPortfolio(holder: string): Promise<IPortfolio> {
         
-        return new Promise( async (resolve, reject) => {
-            // console.log('holder ',holder);
-            try {
-                counters.starts++;
-                var portfolioResponse = await fetchPortfolio(holder);
-                var key = PORTFOLIO + holder; 
+    //     return new Promise( async (resolve, reject) => {
+    //         // console.log('holder ',holder);
+    //         try {
+    //             counters.starts++;
+    //             var portfolioResponse = await fetchPortfolio(holder);
+    //             var key = PORTFOLIO + holder; 
                 
-                var portfolio = portfolioResponse.payload.portfolio;
-                if (!portfolio) {                
-                    console.log('*** error: portfolio response is null == 0',holder);
-                    return reject()
-                }
+    //             var portfolio = portfolioResponse.payload.portfolio;
+    //             if (!portfolio) {                
+    //                 console.log('*** error: portfolio response is null == 0',holder);
+    //                 return reject()
+    //             }
                 
-                client.set(key, JSON.stringify(portfolio));
+    //             client.set(key, JSON.stringify(portfolio));
                 
-                //client.expire(key, TTL)
-                resolve(portfolio);
-            } catch(e) {
-                reject(e);
-            }
-        });
-    }
+    //             //client.expire(key, TTL)
+    //             resolve(portfolio);
+    //         } catch(e) {
+    //             reject(e);
+    //         }
+    //     });
+    // }
     
     
     export async function buildPortfolioHistory(holder: string, cacheOnly: boolean): Promise<object> {
@@ -274,7 +274,6 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
             }
             if (Object.keys(cachedScores).length) {
                 //HIT
-                console.log({ cachedScores });
                 counters.hit++;
                 //@ts-ignore
                 cachedScores.cache = 'HIT';
@@ -299,7 +298,6 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
                 charts.forEach( (it)=> {    
                     timeSeries.push(it[1] ,it[0]);
                 })
-                
                 let portfolio = redisArrToTimeSeriesObj(timeSeries);
                 let scores = calculateScores(portfolio);
                 client.set(key, JSON.stringify(scores));
@@ -314,7 +312,6 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
 
                 return reject();
             }
-            
         });
     }
     

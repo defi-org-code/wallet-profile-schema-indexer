@@ -50,7 +50,7 @@ export async function appendRow(row: any[]) {
         values: [row],
       },
     });
-  console.log(' ** Appended row to sheet:');
+  console.log(' ** Appended row to sheet:', `https://docs.google.com/spreadsheets/d/${spreadsheetId}` );
   } catch (err) {
     console.log('Error appending row to sheet:', err);
   }

@@ -6,7 +6,7 @@ import { AbiItem } from 'web3-utils';
 import fs from 'fs';
 
 const ETHERSCAN_API_KEY = 'GEQZVMM3JHZMCKES5RC6M9J4U3HADDRI26';
-const API_URL = `https://api.etherscan.io/api?apikey=${ETHERSCAN_API_KEY}`;
+const ETHERSCAN_API_URL = `https://api.etherscan.io/api?apikey=${ETHERSCAN_API_KEY}`;
 
 const web3 = new Web3(new Web3.providers.HttpProvider(`https://eth-mainnet.g.alchemy.com/v2/T2CqQfiMJI3yJa1BTnfQfPG6hcfir7Tn`));
 
@@ -37,9 +37,29 @@ export interface TokenHolder {
     balance: string;
 }
 
+
+const getTokenDecimals = async (tokenAddress: string): Promise<number> => {
+  const erc20ABI = [
+    {
+      constant: true,
+      inputs: [],
+      name: 'decimals',
+      outputs: [{ name: '', type: 'uint8' }],
+      payable: false,
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ] as AbiItem[];
+
+  const tokenContract = new web3.eth.Contract(erc20ABI, tokenAddress);
+  const decimals = await tokenContract.methods.decimals().call();
+  return parseInt(decimals);
+};
+
 async function getERC20TokenHolders(tokenAddress: string, pairAddress: string): Promise<TokenHolder[]> {
     try {
-        const response = await axios.get(`${API_URL}&module=account&action=tokentx&contractaddress=${tokenAddress}&address=${pairAddress}`);
+        let url = `${ETHERSCAN_API_URL}&module=account&action=tokentx&contractaddress=${tokenAddress}&address=${pairAddress}`;
+        const response = await axios.get(url);
         const dexSwaps = response.data.result;
         
         const tokenHoldersSet = new Set<string>();
@@ -51,10 +71,13 @@ async function getERC20TokenHolders(tokenAddress: string, pairAddress: string): 
         const tokenHolders: TokenHolder[] = [];
         const holderAddresses = Array.from(tokenHoldersSet);
         const batchSize = 4;
+        const tokenDecimals = await getTokenDecimals(tokenAddress);
+        console.log(`Token decimals: ${tokenDecimals}, holder addresses: ${holderAddresses.length}`);
+        
         
         for (let i = 0; i < holderAddresses.length; i += batchSize) {
             const batch = holderAddresses.slice(i, i + batchSize);
-            const batchBalances = await Promise.all(batch.map(holderAddress => getERC20TokenBalance(holderAddress, tokenAddress)));
+            const batchBalances = await Promise.all(batch.map(holderAddress => getERC20TokenBalance(holderAddress, tokenAddress, tokenDecimals)));
             
             batch.forEach((holderAddress, index) => {
                 const balance = batchBalances[index];
@@ -76,6 +99,7 @@ async function getERC20TokenBalance(address: string, tokenAddress, decimals = 18
     try {
         const erc20Contract = new web3.eth.Contract(erc20Abi, tokenAddress);
         const balance = await erc20Contract.methods.balanceOf(address).call();
+        
         const formattedBalance = new BN(balance).dividedBy(new BN(10).pow(decimals)).toFixed(2);
         return formattedBalance;
     } catch (error) {
