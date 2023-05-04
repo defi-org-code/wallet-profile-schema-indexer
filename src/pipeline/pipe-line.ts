@@ -4,6 +4,7 @@ import { getHoldersCSV } from "./token-holders";
 import { buildTokenScore } from "./token-score";
 import { client } from "./cache";
 import fs from "fs"
+import { checkForUpdates } from "./git-listener";
 
 const MAX_HOLDERS_FILTER = 2500;
 
@@ -20,6 +21,7 @@ async function main(topCoins?: { [key: string]: any}) {
         once = true;
         await client.connect();
     }
+    await checkForUpdates();
     topCoins = topCoins || (await fetchTopCoins());
 
 
