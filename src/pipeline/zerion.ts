@@ -227,43 +227,11 @@ async function fetchChart(address: string, lookBack: ZERION_LOOK_BACK): Promise<
     
     
     
-    
-    var errors = 0;
-    
-    var counter = 0;
-    var buildPortfolioHistoryCounter = 0;
-    // export async function buildPortfolio(holder: string): Promise<IPortfolio> {
-        
-    //     return new Promise( async (resolve, reject) => {
-    //         // console.log('holder ',holder);
-    //         try {
-    //             counters.starts++;
-    //             var portfolioResponse = await fetchPortfolio(holder);
-    //             var key = PORTFOLIO + holder; 
-                
-    //             var portfolio = portfolioResponse.payload.portfolio;
-    //             if (!portfolio) {                
-    //                 console.log('*** error: portfolio response is null == 0',holder);
-    //                 return reject()
-    //             }
-                
-    //             client.set(key, JSON.stringify(portfolio));
-                
-    //             //client.expire(key, TTL)
-    //             resolve(portfolio);
-    //         } catch(e) {
-    //             reject(e);
-    //         }
-    //     });
-    // }
-    
-    
     export async function buildPortfolioHistory(holder: string, cacheOnly: boolean): Promise<object> {
         //console.log(`buildPortfolioHistory ${holder}`);
         counters.starts++;
         return new Promise(async (resolve, reject) => {
             var key = WALLET_SCORES + holder;
-            console.log('key', key);
             
             let cachedScores = {}
             try {

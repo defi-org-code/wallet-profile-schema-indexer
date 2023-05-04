@@ -62,7 +62,7 @@ export async function buildTokenScore(csvFileName: string) {
             
             portfoliosWorth.push(portfolioData.data.attributes.total.positions);
             portfolios1dChange.push(portfolioData.data.attributes.changes.percent_1d);
-            //console.log(scoreData);
+            console.log(scoreData);
             tries++;
 
             //@ts-ignore

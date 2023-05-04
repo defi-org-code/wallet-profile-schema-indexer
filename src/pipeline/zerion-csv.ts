@@ -45,7 +45,7 @@ async function readHolders(holders: Set<string>) {
             console.log(`addresses completed ${counter}`);
         }
         try {
-            let rslt = await buildPortfolioHistory(address);
+            let rslt = await buildPortfolioHistory(address, false);
             writeRow(address, rslt);
         } catch(e) {
             console.log(e);
