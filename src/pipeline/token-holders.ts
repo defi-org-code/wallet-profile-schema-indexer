@@ -70,7 +70,7 @@ async function getERC20TokenHolders(tokenAddress: string, pairAddress: string): 
         
         const tokenHolders: TokenHolder[] = [];
         const holderAddresses = Array.from(tokenHoldersSet);
-        const batchSize = 4;
+        const batchSize = parseInt(process.env.WEB3_BATCH_SIZE) || 2;
         const tokenDecimals = await getTokenDecimals(tokenAddress);
         console.log(`Token decimals: ${tokenDecimals}, holder addresses: ${holderAddresses.length}`);
         
